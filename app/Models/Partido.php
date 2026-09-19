@@ -42,4 +42,9 @@ class Partido extends Model
     {
         return $this->belongsTo(Torneo::class);
     }
+
+    public function jugadores()
+    {
+        return $this->belongsToMany(Jugador::class, 'jugador_partido')->withTimestamps();
+    }
 }

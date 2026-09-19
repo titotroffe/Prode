@@ -93,5 +93,9 @@ class DatabaseSeeder extends Seeder
                 'estado' => 'pendiente'
             ]);
         }
+
+        $this->call([
+            NoticiasJugadoresSeeder::class,
+        ]);
     }
 }
