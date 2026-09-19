@@ -17,74 +17,65 @@ import ManagePartidos from './pages/admin/ManagePartidos';
 import ManageSanciones from './pages/admin/ManageSanciones';
 import ManageJugadores from './pages/admin/ManageJugadores';
 
+const isAdmin = (user) => Number(user?.is_admin) === 1;
+
 function PrivateRoute({ children }) {
     const { user, loading } = useAuth();
-    
     if (loading) return <div className="loading-state">Cargando...</div>;
-    return user ? children : <Navigate to="/login" />;
+    return user ? children : <Navigate to="/login" replace />;
 }
 
 function AdminRoute({ children }) {
     const { user, loading } = useAuth();
-    
     if (loading) return <div className="loading-state">Cargando...</div>;
-    return (user && user.is_admin) ? children : <Navigate to="/" />;
+    return user && isAdmin(user) ? children : <Navigate to="/" replace />;
 }
 
 function Layout({ children }) {
     const { user, logout } = useAuth();
     const { isDarkMode, toggleTheme } = useTheme();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const closeMenu = () => setIsMenuOpen(false);
 
     return (
         <>
-            <header className="header" style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem 2rem', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Link to="/" className="header-brand" style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>Archivero LNF</Link>
-                </div>
-                
-                <button 
-                    className="burger-menu" 
-                    onClick={() => setIsMenuOpen(!isMenuOpen)}
-                    aria-label="Toggle Menu"
-                    style={{ display: 'none' }} // Assuming desktop first for simplicity, handled in CSS
-                >
-                    ☰
-                </button>
-                <nav className={`header-nav ${isMenuOpen ? 'open' : ''}`} style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                    <Link to="/" onClick={() => setIsMenuOpen(false)}>Noticias</Link>
-                    <Link to="/estadisticas" onClick={() => setIsMenuOpen(false)}>Estadísticas</Link>
-                    <Link to="/fixture" onClick={() => setIsMenuOpen(false)}>Fixture</Link>
-                    <Link to="/prode" onClick={() => setIsMenuOpen(false)}>Prode</Link>
-                    
-                    {user ? (
-                        <>
-                            {user.is_admin && (
-                                <Link to="/admin" onClick={() => setIsMenuOpen(false)} style={{ color: 'var(--primary-color)' }}>🛠️ Admin</Link>
-                            )}
-                            <Link to="/perfil" onClick={() => setIsMenuOpen(false)}>Mi Perfil</Link>
-                            <button 
-                                onClick={() => { logout(); setIsMenuOpen(false); }} 
-                                style={{ background: 'var(--accent-color, #e74c3c)', color: 'white', padding: '0.4rem 0.8rem', borderRadius: '4px', border: 'none', cursor: 'pointer' }}
-                            >
-                                Salir
-                            </button>
-                        </>
-                    ) : (
-                        <Link to="/login" onClick={() => setIsMenuOpen(false)} style={{ background: 'var(--primary-color, #3498db)', color: 'white', padding: '0.4rem 0.8rem', borderRadius: '4px', textDecoration: 'none' }}>Iniciar Sesión</Link>
-                    )}
+            <header className="site-header">
+                <div className="header-inner">
+                    <Link to="/" className="header-brand" onClick={closeMenu}>
+                        <span className="brand-mark" aria-hidden="true">L</span>
+                        <span><strong>Archivero</strong><small>LNF</small></span>
+                    </Link>
 
-                    <button 
-                        onClick={() => { toggleTheme(); setIsMenuOpen(false); }} 
-                        style={{ background: 'none', border: '1px solid currentColor', color: 'inherit', font: 'inherit', cursor: 'pointer', padding: '0.4rem 0.8rem', borderRadius: '4px' }}
+                    <button
+                        className={`burger-menu ${isMenuOpen ? 'is-open' : ''}`}
+                        onClick={() => setIsMenuOpen((open) => !open)}
+                        aria-label="Abrir menú"
+                        aria-expanded={isMenuOpen}
                     >
-                        {isDarkMode ? '☀️ Claro' : '🌙 Oscuro'}
+                        <span></span><span></span><span></span>
                     </button>
-                </nav>
+
+                    <nav className={`header-nav ${isMenuOpen ? 'open' : ''}`} aria-label="Navegación principal">
+                        <Link to="/" onClick={closeMenu}>Noticias</Link>
+                        <Link to="/estadisticas" onClick={closeMenu}>Estadísticas</Link>
+                        <Link to="/fixture" onClick={closeMenu}>Fixture</Link>
+                        <Link to="/prode" onClick={closeMenu}>Prode</Link>
+                        {user ? (
+                            <>
+                                {isAdmin(user) ? <Link className="admin-link" to="/admin" onClick={closeMenu}>Administración</Link> : null}
+                                <Link to="/perfil" onClick={closeMenu}>Mi perfil</Link>
+                                <button className="nav-action nav-logout" onClick={() => { closeMenu(); logout(); }}>Salir</button>
+                            </>
+                        ) : (
+                            <Link className="nav-action" to="/login" onClick={closeMenu}>Ingresar</Link>
+                        )}
+                        <button className="theme-toggle" onClick={toggleTheme} aria-label="Cambiar tema">
+                            {isDarkMode ? '☀' : '◐'}
+                        </button>
+                    </nav>
+                </div>
             </header>
-            <main className="container" style={{ padding: '2rem' }}>
-                {children}
-            </main>
+            <main className="container app-main">{children}</main>
         </>
     );
 }
@@ -94,20 +85,15 @@ function App() {
         <BrowserRouter>
             <Layout>
                 <Routes>
-                    {/* Public Routes */}
                     <Route path="/" element={<Home />} />
                     <Route path="/estadisticas" element={<Estadisticas />} />
                     <Route path="/fixture" element={<Fixture />} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
-                    
-                    {/* Private Routes (Prode & Perfil) */}
                     <Route path="/prode" element={<PrivateRoute><MisTorneos /></PrivateRoute>} />
                     <Route path="/torneos/:codigo" element={<PrivateRoute><TorneoView /></PrivateRoute>} />
                     <Route path="/join/:codigo" element={<PrivateRoute><JoinTorneo /></PrivateRoute>} />
                     <Route path="/perfil" element={<PrivateRoute><Perfil /></PrivateRoute>} />
-
-                    {/* Admin Routes */}
                     <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
                     <Route path="/admin/noticias" element={<AdminRoute><ManageNoticias /></AdminRoute>} />
                     <Route path="/admin/jugadores" element={<AdminRoute><ManageJugadores /></AdminRoute>} />
